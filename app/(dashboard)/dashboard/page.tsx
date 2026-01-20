@@ -1,20 +1,44 @@
-"use client"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { getDashboardStats, getWeeklyTrend, getTopBranches, getRecentReports } from "@/lib/actions/dashboard"
+import { SummaryCards } from "@/components/dashboard/summary-cards"
+import { SalesChart } from "@/components/dashboard/sales-chart"
+import { TopBranches } from "@/components/dashboard/top-branches"
+import { RecentReports } from "@/components/dashboard/recent-reports"
 
-import { useAuth } from '@/lib/auth/context'
+export default async function DashboardPage() {
+  const supabase = await createClient()
 
-export default function DashboardPage() {
-  const { user } = useAuth()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return redirect("/login")
+  }
+
+  const [stats, weeklyTrend, topBranches, recentReports] = await Promise.all([
+    getDashboardStats(),
+    getWeeklyTrend(),
+    getTopBranches(),
+    getRecentReports(),
+  ])
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-4">Hoş geldin, {user?.email}</p>
-      
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold">Kullanıcı Bilgileri:</h2>
-        <pre className="mt-2 p-4 bg-gray-100 dark:bg-zinc-900 rounded overflow-auto max-h-96 text-xs text-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-800">
-          {JSON.stringify(user, null, 2)}
-        </pre>
+    <div className="flex-1 space-y-4 p-8 pt-6">
+      <div className="flex items-center justify-between space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">Genel Bakış</h2>
+      </div>
+
+      <SummaryCards stats={stats} />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <SalesChart data={weeklyTrend} />
+        <TopBranches data={topBranches} />
+      </div>
+
+      <div className="grid gap-4 grid-cols-1">
+        <RecentReports reports={recentReports} />
       </div>
     </div>
   )
