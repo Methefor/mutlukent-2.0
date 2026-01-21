@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
-import { format } from "date-fns"
-import { CalendarIcon, Upload, Banknote, CreditCard } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { format } from "date-fns"
+import { Banknote, CalendarIcon, CreditCard } from "lucide-react"
+import { useEffect, useState, useTransition } from "react"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -19,6 +19,8 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     Select,
     SelectContent,
@@ -26,12 +28,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "sonner"
+import { Branch, getBranches } from "@/lib/actions/branches"
 import { createDailyReport } from "@/lib/actions/reports"
-import { Branch } from "@/lib/actions/branches"
+import { toast } from "sonner"
 
 const MAX_FILE_SIZE = 5000000 // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"]
@@ -72,10 +72,35 @@ interface DailyReportFormProps {
 
 export function DailyReportForm({ branches = [], userRole, userBranchId, userBranchName }: DailyReportFormProps) {
     const [isPending, startTransition] = useTransition()
+    const [branchesList, setBranchesList] = useState<Branch[]>(branches)
+    const [isLoadingBranches, setIsLoadingBranches] = useState(false)
 
     // Determine if user is manager or coordinator
     const isManagerOrCoordinator = userRole === 'general_manager' || userRole === 'coordinator'
     const isBranchManager = userRole === 'branch_manager'
+
+    // Debug logs
+    console.log('🔍 DailyReportForm Debug:')
+    console.log('  User Role:', userRole)
+    console.log('  Is Branch Manager:', isBranchManager)
+    console.log('  User Branch ID:', userBranchId)
+    console.log('  Branches List:', branchesList)
+    console.log('  Should show dropdown:', !isBranchManager)
+
+    // Fetch branches on mount if not already provided
+    useEffect(() => {
+        async function fetchBranches() {
+            if (branchesList.length === 0) {
+                console.log('📥 Fetching branches...')
+                setIsLoadingBranches(true)
+                const fetchedBranches = await getBranches()
+                console.log('✅ Branches fetched:', fetchedBranches)
+                setBranchesList(fetchedBranches)
+                setIsLoadingBranches(false)
+            }
+        }
+        fetchBranches()
+    }, [])
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -149,24 +174,38 @@ export function DailyReportForm({ branches = [], userRole, userBranchId, userBra
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8">
-                {/* Branch Selection Logic */}
-                {isManagerOrCoordinator && (
+                {/* Branch Selection - Show for everyone EXCEPT branch_manager */}
+                {!isBranchManager && (
                     <FormField
                         control={form.control}
                         name="branch_id"
                         render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Şube Seçiniz</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select 
+                                    onValueChange={field.onChange} 
+                                    defaultValue={field.value}
+                                    disabled={isLoadingBranches}
+                                >
                                     <FormControl>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Şube seçin" />
+                                            <SelectValue placeholder={
+                                                isLoadingBranches ? "Şubeler yükleniyor..." : "Şube seçin"
+                                            } />
                                         </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        {branches.map(branch => (
-                                            <SelectItem key={branch.id} value={branch.id}>{branch.name}</SelectItem>
-                                        ))}
+                                        {branchesList.length === 0 ? (
+                                            <SelectItem value="no-branches" disabled>
+                                                Şube bulunamadı
+                                            </SelectItem>
+                                        ) : (
+                                            branchesList.map(branch => (
+                                                <SelectItem key={branch.id} value={branch.id}>
+                                                    {branch.name}
+                                                </SelectItem>
+                                            ))
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <FormMessage />
