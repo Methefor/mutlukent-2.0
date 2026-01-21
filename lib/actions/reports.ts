@@ -1,5 +1,7 @@
 'use server'
 
+import { PERMISSIONS } from '@/lib/auth/constants'
+import { hasPermission } from '@/lib/auth/permissions'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
@@ -62,10 +64,14 @@ export async function createDailyReport(prevState: State, formData: FormData) {
     // Validate session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-        console.error('❌ Auth Error:', authError)
-        return {
-            message: 'Unauthorized',
-        }
+        return { message: 'Unauthorized' }
+    }
+
+    // Permission check
+    const canCreate = await hasPermission(user.id, PERMISSIONS.CREATE_REPORT)
+    if (!canCreate) {
+         console.warn(`User ${user.id} tried to create report without permission`)
+         return { message: 'Rapor oluşturma yetkiniz yok.' }
     }
 
     console.log('✅ User authenticated:', user.id)
@@ -302,6 +308,27 @@ export async function updateReport(reportId: string, prevState: State, formData:
         return { message: 'Unauthorized' }
     }
 
+    // Permission Check
+    const canEditAll = await hasPermission(user.id, PERMISSIONS.EDIT_REPORT_ALL)
+    
+    // For MVP, we strictly require 'edit_report:all' OR 'edit_report:branch' (if match)
+    // To safe implementation time, defaulting to check if any edit permission exists, 
+    // real fine-grained checks would need to fetch report data first (which we should do).
+    
+    // Fetch report to check ownership/branch
+    const { data: report } = await supabase.from('daily_reports').select('branch_id, created_by').eq('id', reportId).single()
+    
+    let isAllowed = false
+    if (canEditAll) isAllowed = true
+    else if (report) {
+         if (await hasPermission(user.id, PERMISSIONS.EDIT_REPORT_OWN) && report.created_by === user.id) isAllowed = true
+         // TODO: Add branch check if needed
+    }
+
+    if (!isAllowed) {
+        return { message: 'Bu raporu düzenleme yetkiniz yok.' }
+    }
+
     // Extract data
     const branchId = formData.get('branch_id') as string
     const rawDate = formData.get('report_date') as string
@@ -358,6 +385,12 @@ export async function deleteReport(reportId: string): Promise<{ success: boolean
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
         return { success: false, message: 'Unauthorized' }
+    }
+
+    // Permission Check
+    const canDeleteAll = await hasPermission(user.id, PERMISSIONS.DELETE_REPORT_ALL)
+    if (!canDeleteAll) {
+         return { success: false, message: 'Silme yetkiniz yok.' }
     }
 
     // For now, we'll do hard delete since is_deleted column doesn't exist yet

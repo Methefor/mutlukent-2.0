@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Branch, getBranches } from '@/lib/actions/branches'
+import type { Branch } from '@/lib/actions/branches'
+import { getUserBranches } from '@/lib/actions/branches'
 import { DailyReport, updateReport } from '@/lib/actions/reports'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
@@ -31,7 +32,7 @@ export function ReportEditModal({ report, open, onOpenChange, onSuccess }: Repor
 
     useEffect(() => {
         async function fetchBranches() {
-            const data = await getBranches()
+    const data = await getUserBranches()
             setBranches(data)
         }
         fetchBranches()

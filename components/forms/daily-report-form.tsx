@@ -29,7 +29,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Branch, getBranches } from "@/lib/actions/branches"
+import { Branch, getUserBranches } from "@/lib/actions/branches"
 import { createDailyReport } from "@/lib/actions/reports"
 import { toast } from "sonner"
 
@@ -47,10 +47,10 @@ const formatCurrency = (value: number) => {
 const formSchema = z.object({
     branch_id: z.string().uuid("Şube seçimi zorunludur."),
     report_date: z.date({
-        required_error: "Rapor tarihi gereklidir.",
+        message: "Rapor tarihi gereklidir.",
     }),
-    cash_sales: z.coerce.number().min(0, "Negatif değer girilemez."),
-    credit_card_sales: z.coerce.number().min(0, "Negatif değer girilemez."),
+    cash_sales: z.number().min(0, "Negatif değer girilemez."),
+credit_card_sales: z.number().min(0, "Negatif değer girilemez."),
     notes: z.string().optional(),
     photo: z
         .custom<FileList>()
@@ -93,7 +93,7 @@ export function DailyReportForm({ branches = [], userRole, userBranchId, userBra
             if (branchesList.length === 0) {
                 console.log('📥 Fetching branches...')
                 setIsLoadingBranches(true)
-                const fetchedBranches = await getBranches()
+                const fetchedBranches = await getUserBranches()
                 console.log('✅ Branches fetched:', fetchedBranches)
                 setBranchesList(fetchedBranches)
                 setIsLoadingBranches(false)

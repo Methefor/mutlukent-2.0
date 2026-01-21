@@ -18,38 +18,77 @@ export function ExportButton({ data }: ExportButtonProps) {
         }
 
         try {
-            // Prepare data for Excel
-            const excelData = data.map((report) => ({
-                'Tarih': new Date(report.report_date).toLocaleDateString('tr-TR'),
-                'Şube': report.branch_name,
-                'Oluşturan': report.creator_name,
-                'Nakit Satış': report.cash_sales,
-                'Kredi Kartı': report.credit_card_sales,
-                'Banka Kartı': report.debit_card_sales,
-                'Toplam Satış': report.total_sales,
-                'Notlar': report.notes || '',
-                'Doğrulanmış': report.is_verified ? 'Evet' : 'Hayır',
-            }))
+            // Prepare header row
+            const header = [
+                'Tarih', 'Şube', 'Oluşturan', 'Nakit Satış', 'Kredi Kartı', 
+                'Banka Kartı', 'Toplam Satış', 'Notlar', 'Doğrulanmış'
+            ]
 
-            // Create workbook
-            const worksheet = XLSX.utils.json_to_sheet(excelData)
+            // Prepare data rows
+            const rows = data.map((report) => [
+                new Date(report.report_date).toLocaleDateString('tr-TR'),
+                report.branch_name,
+                report.creator_name,
+                report.cash_sales,
+                report.credit_card_sales,
+                report.debit_card_sales,
+                report.total_sales,
+                report.notes || '',
+                report.is_verified ? 'Evet' : 'Hayır'
+            ])
+
+            // Calculate totals
+            const totals = data.reduce((acc, curr) => ({
+                cash: acc.cash + (Number(curr.cash_sales) || 0),
+                credit: acc.credit + (Number(curr.credit_card_sales) || 0),
+                debit: acc.debit + (Number(curr.debit_card_sales) || 0),
+                total: acc.total + (Number(curr.total_sales) || 0)
+            }), { cash: 0, credit: 0, debit: 0, total: 0 })
+
+            // Append Totals Row
+            rows.push([
+                'TOPLAM', '', '', 
+                totals.cash, 
+                totals.credit, 
+                totals.debit, 
+                totals.total, 
+                '', ''
+            ])
+
+            // Create workbook and worksheet
             const workbook = XLSX.utils.book_new()
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Z-Raporları')
+            // use aoa_to_sheet for array of arrays
+            const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows])
+
+            // Apply currency formatting to value columns (D, E, F, G)
+            const currencyFormat = '#,##0.00 "₺"'
+            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:I1')
+            for (let R = 1; R <= range.e.r; ++R) {
+                // Formatting columns 3,4,5,6 (0-indexed)
+                [3, 4, 5, 6].forEach(C => {
+                    const cellRef = XLSX.utils.encode_cell({ r: R, c: C })
+                    if (worksheet[cellRef]) {
+                        worksheet[cellRef].z = currencyFormat
+                    }
+                })
+            }
 
             // Set column widths
             worksheet['!cols'] = [
                 { wch: 12 }, // Tarih
                 { wch: 20 }, // Şube
                 { wch: 20 }, // Oluşturan
-                { wch: 12 }, // Nakit
-                { wch: 12 }, // Kredi Kartı
-                { wch: 12 }, // Banka Kartı
-                { wch: 12 }, // Toplam
+                { wch: 15 }, // Nakit
+                { wch: 15 }, // Kredi
+                { wch: 15 }, // Banka
+                { wch: 15 }, // Toplam
                 { wch: 30 }, // Notlar
                 { wch: 12 }, // Doğrulanmış
             ]
 
-            // Generate filename with current date
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Z-Raporları')
+
+            // Generate filename
             const filename = `z-raporlari-${new Date().toISOString().split('T')[0]}.xlsx`
 
             // Download file

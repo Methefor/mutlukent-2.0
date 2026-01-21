@@ -1,6 +1,17 @@
 'use client'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Separator } from '@/components/ui/separator'
 import {
     Table,
     TableBody,
@@ -9,10 +20,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { DailyReport, ReportsListResponse } from '@/lib/actions/reports'
+import type { DailyReport, ReportsListResponse } from '@/lib/actions/reports'
 import { format } from 'date-fns'
 import { tr } from 'date-fns/locale'
-import { Eye, Pencil, Trash2 } from 'lucide-react'
+import { Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { DeleteConfirmDialog } from './delete-confirm-dialog'
 import { ReportDetailModal } from './report-detail-modal'
@@ -20,6 +31,7 @@ import { ReportEditModal } from './report-edit-modal'
 
 interface ReportsTableProps {
     reportsData: ReportsListResponse
+    permissions: string[]
 }
 
 function formatCurrency(value: number) {
@@ -29,7 +41,7 @@ function formatCurrency(value: number) {
     }).format(value)
 }
 
-export function ReportsTable({ reportsData }: ReportsTableProps) {
+export function ReportsTable({ reportsData, permissions }: ReportsTableProps) {
     const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null)
     const [detailModalOpen, setDetailModalOpen] = useState(false)
     const [editModalOpen, setEditModalOpen] = useState(false)
@@ -55,18 +67,22 @@ export function ReportsTable({ reportsData }: ReportsTableProps) {
 
     if (reports.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="text-muted-foreground">
-                    <p className="text-lg font-semibold">Henüz rapor yok</p>
-                    <p className="text-sm">Yeni bir rapor ekleyerek başlayın</p>
-                </div>
-            </div>
+            <EmptyState
+                icon={FileText}
+                title="Henüz rapor yok"
+                description="Bugün için henüz Z-raporu girilmemiş. Hemen bir rapor oluşturabilirsiniz."
+                action={{
+                    label: "Yeni Rapor Oluştur",
+                    href: "/dashboard/reports/new"
+                }}
+            />
         )
     }
 
     return (
         <>
-            <div className="rounded-md border">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -102,33 +118,88 @@ export function ReportsTable({ reportsData }: ReportsTableProps) {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleViewDetail(report)}
-                                        >
+                                        <Button variant="ghost" size="sm" onClick={() => handleViewDetail(report)}>
                                             <Eye className="h-4 w-4" />
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleEdit(report)}
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleDeleteClick(report.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
+
+                                        {(permissions.includes('edit_report:all') || 
+                                          permissions.includes('edit_report:branch') ||
+                                          permissions.includes('edit_report:own')) && (
+                                            <Button variant="ghost" size="sm" onClick={() => handleEdit(report)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                        )}
+
+                                        {permissions.includes('delete_report:all') && (
+                                            <Button variant="ghost" size="sm" onClick={() => handleDeleteClick(report.id)}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
+            </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {reports.map((report) => (
+                    <Card key={report.id}>
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base">
+                                    {report.branch_name}
+                                </CardTitle>
+                                <Badge variant={report.is_verified ? "default" : "secondary"}>
+                                    {report.is_verified ? "Onaylandı" : "Bekliyor"}
+                                </Badge>
+                            </div>
+                            <CardDescription>
+                                {format(new Date(report.report_date), "dd MMMM yyyy", { locale: tr })}
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Nakit:</span>
+                                <span className="font-medium">{formatCurrency(report.cash_sales)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Kredi Kartı:</span>
+                                <span className="font-medium">{formatCurrency(report.credit_card_sales)}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Banka Kartı:</span>
+                                <span className="font-medium">{formatCurrency(report.debit_card_sales)}</span>
+                            </div>
+                            <Separator />
+                            <div className="flex justify-between text-sm font-semibold">
+                                <span>Toplam:</span>
+                                <span>{formatCurrency(report.total_sales)}</span>
+                            </div>
+                        </CardContent>
+                        <CardFooter className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={() => handleViewDetail(report)}>
+                                <Eye className="h-4 w-4 mr-1" />
+                            </Button>
+                            
+                            {(permissions.includes('edit_report:all') || 
+                              permissions.includes('edit_report:branch') ||
+                              permissions.includes('edit_report:own')) && (
+                                <Button variant="outline" size="sm" onClick={() => handleEdit(report)}>
+                                    <Pencil className="h-4 w-4 mr-1" />
+                                </Button>
+                            )}
+
+                            {permissions.includes('delete_report:all') && (
+                                <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(report.id)}>
+                                    <Trash2 className="h-4 w-4 mr-1" />
+                                </Button>
+                            )}
+                        </CardFooter>
+                    </Card>
+                ))}
             </div>
 
             {/* Pagination Info */}
@@ -166,7 +237,6 @@ export function ReportsTable({ reportsData }: ReportsTableProps) {
                     onOpenChange={setDeleteDialogOpen}
                     onSuccess={() => {
                         setReportToDelete(null)
-                        // Refresh page
                         window.location.reload()
                     }}
                 />

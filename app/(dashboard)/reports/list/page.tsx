@@ -1,8 +1,10 @@
 import { ExportButton } from '@/components/reports/export-button'
 import { ReportFilters } from '@/components/reports/report-filters'
 import { ReportsTable } from '@/components/reports/reports-table'
+import { ReportsTableSkeleton } from '@/components/reports/reports-table-skeleton'
 import { Button } from '@/components/ui/button'
 import { getReports } from '@/lib/actions/reports'
+import { getCurrentUserPermissions } from '@/lib/auth/permissions'
 import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { Suspense } from 'react'
@@ -59,8 +61,11 @@ export default async function ReportsListPage({ searchParams }: PageProps) {
             <ReportFilters />
 
             {/* Table */}
-            <Suspense fallback={<div>Yükleniyor...</div>}>
-                <ReportsTable reportsData={reportsData} />
+            <Suspense fallback={<ReportsTableSkeleton />}>
+                <ReportsTable 
+                    reportsData={reportsData} 
+                    permissions={await getCurrentUserPermissions()}
+                />
             </Suspense>
         </div>
     )
