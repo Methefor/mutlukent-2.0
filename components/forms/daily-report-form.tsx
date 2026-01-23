@@ -47,11 +47,19 @@ const formatCurrency = (value: number) => {
 const formSchema = z.object({
     branch_id: z.string().uuid("Şube seçimi zorunludur."),
     report_date: z.date({
-        required_error: "Rapor tarihi gereklidir.",
+        message: "Rapor tarihi gereklidir.",
     }),
-    cash_sales: z.coerce.number().min(0, "Negatif değer girilemez."),
-    credit_card_sales: z.coerce.number().min(0, "Negatif değer girilemez."),
-    notes: z.string().optional(),
+    cash_sales: z.string().or(z.number()).transform((val) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        if (isNaN(num) || num < 0) return 0;
+        return num;
+    }),
+    credit_card_sales: z.string().or(z.number()).transform((val) => {
+        const num = typeof val === 'string' ? parseFloat(val) : val;
+        if (isNaN(num) || num < 0) return 0;
+        return num;
+    }),
+    notes: z.string().optional().default(""),
     photo: z
         .custom<FileList>()
         .optional()
@@ -77,13 +85,13 @@ export function DailyReportForm({ branches = [], userRole, userBranchId, userBra
     const isManagerOrCoordinator = userRole === 'general_manager' || userRole === 'coordinator'
     const isBranchManager = userRole === 'branch_manager'
 
-    const form = useForm<z.infer<typeof formSchema>>({
+    const form = useForm({
         resolver: zodResolver(formSchema),
         defaultValues: {
             branch_id: isBranchManager && userBranchId ? userBranchId : "",
             report_date: new Date(),
-            cash_sales: 0,
-            credit_card_sales: 0,
+            cash_sales: 0 as any,
+            credit_card_sales: 0 as any,
             notes: "",
         },
     })

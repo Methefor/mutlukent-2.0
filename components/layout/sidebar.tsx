@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FileText, Settings, Menu, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, FilePlus, FileText, Settings, Menu, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/context'
 import { Button } from '@/components/ui/button'
@@ -13,24 +13,10 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 const menuItems = [
-    {
-        name: 'Dashboard',
-        href: '/dashboard',
-        icon: LayoutDashboard,
-        roles: ['admin', 'user', 'manager'],
-    },
-    {
-        name: 'Z-Raporları',
-        href: '/dashboard/reports',
-        icon: FileText,
-        roles: ['admin', 'manager'],
-    },
-    {
-        name: 'Ayarlar',
-        href: '/dashboard/settings',
-        icon: Settings,
-        roles: ['admin'],
-    },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'user', 'manager'] },
+    { name: 'Yeni Z-Raporu', href: '/dashboard/reports', icon: FilePlus, roles: ['admin', 'manager'] },
+    { name: 'Rapor Listesi', href: '/dashboard/reports/list', icon: FileText, roles: ['admin', 'manager'] },
+    { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
 ]
 
 export function Sidebar({ className }: SidebarProps) {
