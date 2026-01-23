@@ -34,7 +34,7 @@ export default async function Home() {
                 <p className="text-green-600 font-medium">Successfully connected!</p>
                 {branches && branches.length > 0 ? (
                   <ul className="list-disc list-inside text-sm text-zinc-700 dark:text-zinc-300">
-                    {branches.map((branch: any) => (
+                    {branches.map((branch: { id: string; name: string }) => (
                       <li key={branch.id}>{branch.name}</li>
                     ))}
                   </ul>

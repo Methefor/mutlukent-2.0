@@ -1,8 +1,7 @@
 'use client'
 
-import { useAuth } from '@/lib/auth/context'
-import { signOut } from '@/lib/auth/actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
     DropdownMenu,
@@ -12,21 +11,31 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
+import { signOut } from '@/lib/auth/actions'
+import { useAuth } from '@/lib/auth/context'
+import { LogOut } from 'lucide-react'
 import { MobileSidebar } from './sidebar'
-import { LogOut, User as UserIcon } from 'lucide-react'
 
-export function Header() {
+interface HeaderProps {
+    userRole?: string
+}
+
+export function Header({ userRole = 'staff' }: HeaderProps) {
     const { user } = useAuth()
 
-    const fullName = user?.user_metadata?.full_name || 'Test Admin'
-    const userInitial = fullName?.[0]?.toUpperCase() || 'T'
-    const userRole = user?.user_metadata?.role || 'Genel Müdür'
+    const fullName = user?.user_metadata?.full_name || 'Kullanıcı'
+    const userInitial = fullName?.[0]?.toUpperCase() || 'K'
+    // Display role can still come from metadata or we can map the database role to a display name
+    // For now, let's just display the passed role capitalized
+    const displayRole = userRole === 'general_manager' ? 'Genel Müdür' : 
+                        userRole === 'branch_manager' ? 'Şube Müdürü' : 
+                        userRole === 'warehouse_manager' ? 'Depo Sorumlusu' : 
+                        userRole.replace('_', ' ')
 
     return (
         <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="container flex h-16 items-center">
-                <MobileSidebar />
+                <MobileSidebar userRole={userRole} />
 
                 <div className="flex flex-1 items-center justify-end space-x-4">
                     <nav className="flex items-center space-x-2">

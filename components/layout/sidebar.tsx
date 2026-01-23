@@ -1,31 +1,80 @@
 'use client'
 
-import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { cn } from '@/lib/utils'
+import { ChevronLeft, ChevronRight, FileText, LayoutDashboard, Menu, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+<<<<<<< HEAD
 import { LayoutDashboard, FilePlus, FileText, Settings, Menu, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth/context'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { ScrollArea } from '@/components/ui/scroll-area'
+=======
+import { useState } from 'react'
+>>>>>>> 0b2b8c47afe27ca45005f53f2b338165629c90e2
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> { }
 
+import { PlusCircle, Users } from 'lucide-react'
+
+// ... imports
+
 const menuItems = [
+<<<<<<< HEAD
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'user', 'manager'] },
     { name: 'Yeni Z-Raporu', href: '/dashboard/reports', icon: FilePlus, roles: ['admin', 'manager'] },
     { name: 'Rapor Listesi', href: '/dashboard/reports/list', icon: FileText, roles: ['admin', 'manager'] },
     { name: 'Ayarlar', href: '/dashboard/settings', icon: Settings, roles: ['admin'] },
+=======
+    {
+        name: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+        roles: ['all'],
+    },
+    {
+        name: 'Yeni Rapor',
+        href: '/dashboard/reports',
+        icon: PlusCircle,
+        roles: ['branch_manager', 'admin', 'general_manager', 'coordinator'], // Added coordinator/gm for now if they need to create
+    },
+    {
+        name: 'Raporlar',
+        href: '/dashboard/reports/list',
+        icon: FileText,
+        roles: ['all'],
+    },
+    {
+        name: 'Kullanıcılar',
+        href: '/dashboard/users',
+        icon: Users,
+        roles: ['admin', 'general_manager'],
+    },
+    {
+        name: 'Ayarlar',
+        href: '/dashboard/settings',
+        icon: Settings,
+        roles: ['admin'],
+    },
+>>>>>>> 0b2b8c47afe27ca45005f53f2b338165629c90e2
 ]
 
-export function Sidebar({ className }: SidebarProps) {
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+    userRole?: string
+}
+
+export function Sidebar({ className, userRole = 'staff' }: SidebarProps) {
     const [isCollapsed, setIsCollapsed] = useState(false)
     const pathname = usePathname()
-    const { user } = useAuth()
 
-    // Assuming user role is stored in user_metadata, fallback to 'user'
-    const userRole = user?.user_metadata?.role || 'user'
+    const visibleItems = menuItems.filter(item => 
+        item.roles.includes('all') || item.roles.includes(userRole)
+    )
 
     return (
         <div
@@ -47,7 +96,7 @@ export function Sidebar({ className }: SidebarProps) {
                 <div className="space-y-4 py-4">
                     <div className="px-3 py-2">
                         <div className="space-y-1">
-                            {menuItems.map((item) => (
+                            {visibleItems.map((item) => (
                                 <Link
                                     key={item.name}
                                     href={item.href}
@@ -84,11 +133,13 @@ export function Sidebar({ className }: SidebarProps) {
     )
 }
 
-export function MobileSidebar() {
+export function MobileSidebar({ userRole = 'staff' }: SidebarProps) {
     const [open, setOpen] = useState(false)
     const pathname = usePathname()
-    const { user } = useAuth()
-    const userRole = user?.user_metadata?.role || 'user'
+    
+    const visibleItems = menuItems.filter(item => 
+        item.roles.includes('all') || item.roles.includes(userRole)
+    )
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -105,7 +156,7 @@ export function MobileSidebar() {
                 <ScrollArea className="h-[calc(100vh-4rem)]">
                     <div className="space-y-4 py-4">
                         <div className="px-3 py-2">
-                            {menuItems.map((item) => (
+                            {visibleItems.map((item) => (
                                 <Link
                                     key={item.name}
                                     href={item.href}

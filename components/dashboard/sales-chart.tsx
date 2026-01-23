@@ -1,15 +1,27 @@
 'use client'
 
-import React from 'react'
-import ReactECharts from 'echarts-for-react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SalesTrend } from "@/lib/actions/dashboard"
+import ReactECharts from 'echarts-for-react'
+import React from 'react'
 
 interface SalesChartProps {
     data: SalesTrend[]
 }
 
 export function SalesChart({ data }: SalesChartProps) {
+    const [isMobile, setIsMobile] = React.useState(false)
+
+    React.useEffect(() => {
+        const checkMobile = () => {
+             setIsMobile(window.innerWidth < 768)
+        }
+        
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
+    }, [])
+
     const option = {
         tooltip: {
             trigger: 'axis',
@@ -22,10 +34,16 @@ export function SalesChart({ data }: SalesChartProps) {
             }
         },
         grid: {
-            left: '3%',
-            right: '4%',
-            bottom: '3%',
+            left: isMobile ? 40 : 60,
+            right: isMobile ? 20 : 40,
+            bottom: isMobile ? 40 : 60,
+            top: 60,
             containLabel: true
+        },
+        legend: {
+            orient: isMobile ? 'horizontal' : 'vertical',
+            bottom: isMobile ? 0 : 'auto',
+            right: isMobile ? 'auto' : 10,
         },
         xAxis: {
             type: 'category',
@@ -98,7 +116,7 @@ export function SalesChart({ data }: SalesChartProps) {
                 <CardTitle>Haftalık Satış Trendi</CardTitle>
             </CardHeader>
             <CardContent>
-                <ReactECharts option={option} style={{ height: '350px' }} />
+                <ReactECharts option={option} style={{ height: isMobile ? '300px' : '400px' }} />
             </CardContent>
         </Card>
     )
